@@ -1127,6 +1127,9 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
             case "async-no-bundler":
             case "anb":
                 return new AsyncNoBundler();
+            case "ab":
+            case "alternating-bundler":
+                return new AlternatingBundler();
         }
 
         try {
