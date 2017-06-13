@@ -2,6 +2,7 @@ package org.jgroups.protocols;
 
 import org.jgroups.Address;
 import org.jgroups.Message;
+import org.jgroups.annotations.Experimental;
 import org.jgroups.stack.DiagnosticsHandler;
 import org.jgroups.util.AverageMinMax;
 import org.jgroups.util.Util;
@@ -21,6 +22,7 @@ import java.util.Map;
  * @author Bela Ban
  * @since  4.0.4
  */
+@Experimental
 public class AlternatingBundler extends TransferQueueBundler implements DiagnosticsHandler.ProbeHandler {
     protected         Address       target_dest; // the current destination
     protected final   List<Message> target_list=new ArrayList<>(); // msgs for the current dest; flushed on dest change
