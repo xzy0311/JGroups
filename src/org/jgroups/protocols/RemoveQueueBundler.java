@@ -9,7 +9,9 @@ import org.jgroups.util.DefaultThreadFactory;
 import org.jgroups.util.RingBuffer;
 import org.jgroups.util.Runner;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Bundler implementation which sends message batches (or single messages) as soon as the remove queue is full
@@ -27,21 +29,35 @@ public class RemoveQueueBundler extends BaseBundler {
     protected Runner                runner;
     protected Message[]             remove_queue;
     protected final AverageMinMax   avg_batch_size=new AverageMinMax();
-    protected int                   queue_size=512;
+    protected int                   queue_size=1024;
 
-    @ManagedAttribute(description="Remove queue size",name="rqb.remove_queue_size")
-    public int getRemoveQueueSize() {return remove_queue.length;}
+    @ManagedAttribute(description="Remove queue size")
+    public int rqbRemoveQueueSize() {return remove_queue.length;}
 
-    @ManagedAttribute(description="Sets the size of the remove queue",name="rqb.remove_queue_size")
-    public void setRemoveQueueSize(int size) {
+    @ManagedAttribute(description="Sets the size of the remove queue; creates a new remove queue")
+    public void rqbRemoveQueueSize(int size) {
         if(size == queue_size) return;
         queue_size=size;
         remove_queue=new Message[queue_size];
     }
 
-    @ManagedAttribute(description="Average batch length",name="rqb.avg_batch_size")
-    public String getAvgBatchSize() {return avg_batch_size.toString();}
+    @ManagedAttribute(description="Average batch length")
+    public String rqbAvgBatchSize() {return avg_batch_size.toString();}
 
+    @ManagedAttribute(description="Current number of messages (to be sent) in the ring buffer")
+    public int rqbRingBufferSize() {return rb.size();}
+
+    public Map<String,Object> getStats() {
+        Map<String,Object> map=new HashMap<>();
+        map.put("avg-batch-size", avg_batch_size.toString());
+        map.put("ring-buffer-size", rb.size());
+        map.put("remove-queue-size", queue_size);
+        return map;
+    }
+
+    public void resetStats() {
+        avg_batch_size.clear();
+    }
 
     public void init(TP transport) {
         super.init(transport);
@@ -82,47 +98,6 @@ public class RemoveQueueBundler extends BaseBundler {
             }
 
             sendBundledMessages();
-
-            // iterate through the remove queue and try to send as many batches as possible
-/*            int start=0;
-            for(;;) {
-                for(; start < drained && remove_queue[start] == null; ++start) ;
-                if(start >= drained)
-                    return;
-                Address dest=remove_queue[start].getDest();
-                int numMsgs=1;
-                for(int i=start + 1; i < drained; ++i) {
-                    Message msg=remove_queue[i];
-                    if(msg != null && (dest == msg.getDest() || (Objects.equals(dest, msg.getDest())))) {
-                        msg.setDest(dest); // avoid further equals() calls
-                        numMsgs++;
-                    }
-                }
-                try {
-                    output.position(0);
-                    if(numMsgs == 1) {
-                        sendSingleMessage(remove_queue[start]);
-                        remove_queue[start]=null;
-                    }
-                    else {
-                        Util.writeMessageListHeader(dest, remove_queue[start].getSrc(), transport.cluster_name.chars(), numMsgs, output, dest == null);
-                        for(int i=start; i < drained; ++i) {
-                            Message msg=remove_queue[i];
-                            // since we assigned the matching destination we can do plain ==
-                            if(msg != null && msg.getDest() == dest) {
-                                msg.writeToNoAddrs(msg.getSrc(), output, transport.getId());
-                                remove_queue[i]=null;
-                            }
-                        }
-                        transport.doSend(output.buffer(), 0, output.position(), dest);
-                    }
-                    start++;
-                }
-                catch(Exception e) {
-                    log.error("Failed to send message", e);
-                }
-            }*/
-
         }
         catch(Throwable t) {
         }
