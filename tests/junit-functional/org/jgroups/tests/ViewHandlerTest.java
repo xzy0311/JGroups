@@ -2,7 +2,9 @@ package org.jgroups.tests;
 
 import org.jgroups.Address;
 import org.jgroups.Global;
+import org.jgroups.View;
 import org.jgroups.protocols.pbcast.GMS;
+import org.jgroups.protocols.pbcast.GmsImpl;
 import org.jgroups.protocols.pbcast.ViewHandler;
 import org.jgroups.stack.Protocol;
 import org.jgroups.util.DefaultThreadFactory;
@@ -13,10 +15,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
@@ -33,6 +32,8 @@ public class ViewHandlerTest {
     protected ViewHandler<Integer>            view_handler;
     protected Consumer<Collection<Integer>>   req_handler;
     protected BiPredicate<Integer,Integer>    req_matcher;
+
+    protected static final Address a=Util.createRandomAddress("A"), b=Util.createRandomAddress("B");
 
     protected void process(Collection<Integer> requests) {
         if(req_handler != null)
@@ -157,6 +158,64 @@ public class ViewHandlerTest {
         assert list.equals(Arrays.asList(1,2,3,4,5,6,7,8,9,10));
     }
 
+    public void testDuplicateRequestsJoin() {
+        Collection<GmsImpl.Request> reqs=new LinkedHashSet<>();
+        reqs.add(new GmsImpl.Request(GmsImpl.Request.JOIN, a));
+        reqs.add(new GmsImpl.Request(GmsImpl.Request.JOIN, b));
+        assert reqs.size() == 2;
+        reqs.add(new GmsImpl.Request(GmsImpl.Request.JOIN, a));
+        assert reqs.size() == 2 : "requests: "+ reqs;
+
+        reqs.clear();
+        reqs.add(new GmsImpl.Request(GmsImpl.Request.JOIN, a));
+        reqs.add(new GmsImpl.Request(GmsImpl.Request.JOIN_WITH_STATE_TRANSFER, a));
+        assert reqs.size() == 2;
+    }
+
+
+    public void testDuplicateRequestsLeave() {
+        Collection<GmsImpl.Request> reqs=new LinkedHashSet<>();
+        reqs.add(new GmsImpl.Request(GmsImpl.Request.LEAVE, a));
+        reqs.add(new GmsImpl.Request(GmsImpl.Request.LEAVE, b));
+        assert reqs.size() == 2;
+        reqs.add(new GmsImpl.Request(GmsImpl.Request.LEAVE, a));
+        assert reqs.size() == 2 : "requests: "+ reqs;
+
+        reqs.clear();
+        reqs.add(new GmsImpl.Request(GmsImpl.Request.LEAVE, a));
+        reqs.add(new GmsImpl.Request(GmsImpl.Request.SUSPECT, a));
+        assert reqs.size() == 2;
+    }
+
+    public void testDuplicateRequestsSuspect() {
+        Collection<GmsImpl.Request> reqs=new LinkedHashSet<>();
+        reqs.add(new GmsImpl.Request(GmsImpl.Request.SUSPECT, a));
+        reqs.add(new GmsImpl.Request(GmsImpl.Request.SUSPECT, b));
+        assert reqs.size() == 2;
+        reqs.add(new GmsImpl.Request(GmsImpl.Request.SUSPECT, a));
+        assert reqs.size() == 2 : "requests: "+ reqs;
+
+        reqs.clear();
+        reqs.add(new GmsImpl.Request(GmsImpl.Request.LEAVE, a));
+        reqs.add(new GmsImpl.Request(GmsImpl.Request.SUSPECT, a));
+        assert reqs.size() == 2;
+    }
+
+    public void testDuplicateRequestsMerge() {
+         Collection<GmsImpl.Request> reqs=new LinkedHashSet<>();
+
+        Map<Address,View> map1=new HashMap<>();
+        map1.put(a, View.create(a, 1, a,b));
+
+        Map<Address,View> map2=new HashMap<>();
+        map2.put(b, View.create(b, 2, b,a));
+
+        reqs.add(new GmsImpl.Request(GmsImpl.Request.MERGE, null, map1));
+        reqs.add(new GmsImpl.Request(GmsImpl.Request.MERGE, null, map2));
+        assert reqs.size() == 2;
+        reqs.add(new GmsImpl.Request(GmsImpl.Request.MERGE, null, map1));
+        assert reqs.size() == 2 : "requests: "+ reqs;
+    }
 
     protected void configureGMS(GMS gms) {
         Address local_addr=Util.createRandomAddress("A");
