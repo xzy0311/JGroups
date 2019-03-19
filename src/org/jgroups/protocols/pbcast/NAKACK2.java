@@ -215,7 +215,7 @@ public class NAKACK2 extends Protocol implements DiagnosticsHandler.ProbeHandler
 
     protected volatile boolean          leaving=false;
     protected volatile boolean          running=false;
-    protected TimeScheduler             timer=null;
+    protected TimeScheduler             timer;
     protected LastSeqnoResender         last_seqno_resender;
     protected final Lock                rebroadcast_lock=new ReentrantLock();
     protected final Condition           rebroadcast_done=rebroadcast_lock.newCondition();
@@ -456,11 +456,11 @@ public class NAKACK2 extends Protocol implements DiagnosticsHandler.ProbeHandler
 
     public void start() throws Exception {
         timer=getTransport().getTimer();
-        if(timer == null)
-            throw new Exception("timer is null");
+        //if(timer == null)
+          //  throw new Exception("timer is null");
         running=true;
         leaving=false;
-        startRetransmitTask();
+
     }
 
 
@@ -525,6 +525,16 @@ public class NAKACK2 extends Protocol implements DiagnosticsHandler.ProbeHandler
             case Event.SET_LOCAL_ADDRESS:
                 local_addr=evt.getArg();
                 break;
+
+            case Event.CONNECT:
+            case Event.CONNECT_WITH_STATE_TRANSFER_USE_FLUSH:
+            case Event.CONNECT_WITH_STATE_TRANSFER:
+            case Event.CONNECT_USE_FLUSH:
+
+                timer=getTransport().getTimer();
+                startRetransmitTask();
+                break;
+
 
             case Event.DISCONNECT:
                 leaving=true;

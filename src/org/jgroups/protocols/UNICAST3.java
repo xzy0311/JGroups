@@ -327,9 +327,7 @@ public class UNICAST3 extends Protocol implements AgeOutCache.Handler<Address> {
         super.init();
         TP transport=getTransport();
         sends_can_block=transport instanceof TCP; // UDP and TCP_NIO2 won't block
-        time_service=transport.getTimeService();
-        if(time_service == null)
-            throw new IllegalStateException("time service from transport is null");
+
         last_sync_sent=new ExpiryCache<>(sync_min_interval);
 
         // max bundle size (minus overhead) divided by <long size> times bits per long
@@ -354,8 +352,8 @@ public class UNICAST3 extends Protocol implements AgeOutCache.Handler<Address> {
 
     public void start() throws Exception {
         timer=getTransport().getTimer();
-        if(timer == null)
-            throw new Exception("timer is null");
+        //if(timer == null)
+          //  throw new Exception("timer is null");
         if(max_retransmit_time > 0)
             cache=new AgeOutCache<>(timer, max_retransmit_time, this);
         running=true;
@@ -1041,7 +1039,7 @@ public class UNICAST3 extends Protocol implements AgeOutCache.Handler<Address> {
 
     protected void startRetransmitTask() {
         if(xmit_task == null || xmit_task.isDone())
-            xmit_task=timer.scheduleWithFixedDelay(new RetransmitTask(), 0, xmit_interval, TimeUnit.MILLISECONDS, sends_can_block);
+            xmit_task=getTransport().getTimer().scheduleWithFixedDelay(new RetransmitTask(), 0, xmit_interval, TimeUnit.MILLISECONDS, sends_can_block);
     }
 
     protected void stopRetransmitTask() {

@@ -114,9 +114,7 @@ public abstract class Discovery extends Protocol {
 
     public void init() throws Exception {
         TP tp=getTransport();
-        timer=tp.getTimer();
-        if(timer == null)
-            throw new Exception("timer cannot be retrieved from protocol stack");
+
         if(stagger_timeout < 0)
             throw new IllegalArgumentException("stagger_timeout cannot be negative");
         if(num_discovery_runs < 1)
@@ -184,6 +182,9 @@ public abstract class Discovery extends Protocol {
 
     public void start() throws Exception {
         super.start();
+        timer=getTransport().getTimer();
+        //if(timer == null)
+          //  throw new Exception("timer cannot be retrieved from protocol stack");
     }
 
     public void stop() {
@@ -221,6 +222,10 @@ public abstract class Discovery extends Protocol {
         int capacity=members != null? members.size() : 16;
         Responses rsps=new Responses(num_expected, initial_discovery && break_on_coord_rsp, capacity);
         addResponse(rsps);
+
+        if(timer == null)
+            timer=getTransport().getTimer();
+
         if(async || async_discovery || (num_discovery_runs > 1) && initial_discovery) {
             timer.execute(() -> invokeFindMembers(members, initial_discovery, rsps, async));
             if(num_discovery_runs > 1 && initial_discovery) {
@@ -555,7 +560,7 @@ public abstract class Discovery extends Protocol {
     }
 
     protected synchronized void startCacheDissemination(List<Address> curr_mbrs, List<Address> left_mbrs, List<Address> new_mbrs) {
-        timer.execute(new DiscoveryCacheDisseminationTask(curr_mbrs,left_mbrs,new_mbrs), sends_can_block);
+        getTransport().getTimer().execute(new DiscoveryCacheDisseminationTask(curr_mbrs,left_mbrs,new_mbrs), sends_can_block);
     }
 
 
@@ -604,7 +609,7 @@ public abstract class Discovery extends Protocol {
             int rank=Util.getRank(view, local_addr); // returns 0 if view or local_addr are null
             long sleep_time=rank == 0? Util.random(stagger_timeout)
               : stagger_timeout * rank / view_size - (stagger_timeout / view_size);
-            timer.schedule(() -> {
+            getTransport().getTimer().schedule(() -> {
                 log.trace("%s: received GET_MBRS_REQ from %s, sending staggered response %s", local_addr, sender, data);
                 down_prot.down(rsp_msg);
             }, sleep_time, TimeUnit.MILLISECONDS, sends_can_block);

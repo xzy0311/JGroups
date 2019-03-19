@@ -172,7 +172,7 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
     protected long time_service_interval=500;
 
     @Property(description="Switch to enable diagnostic probing. Default is true")
-    protected boolean enable_diagnostics=true;
+    protected boolean enable_diagnostics;
 
     @Property(description="Address for diagnostic probing. Default is 224.0.75.75", 
               defaultValueIPv4="224.0.75.75",defaultValueIPv6="ff0e::0:75:75")
@@ -866,13 +866,8 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
 
 
         // ========================================== Timer ==============================
-        if(timer == null) {
-            timer=new TimeScheduler3(thread_pool, thread_factory);
-            timer.setNonBlockingTaskHandling(timer_handle_non_blocking_tasks);
-        }
 
-        if(time_service_interval > 0)
-            time_service=new TimeService(timer, time_service_interval).start();
+
 
 
         Map<String, Object> m=new HashMap<>(2);
@@ -887,17 +882,7 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
 
         logical_addr_cache=new LazyRemovalCache<>(logical_addr_cache_max_size, logical_addr_cache_expiration);
         
-        if(logical_addr_cache_reaper_interval > 0 && (logical_addr_cache_reaper == null || logical_addr_cache_reaper.isDone())) {
-            logical_addr_cache_reaper=timer.scheduleWithFixedDelay(new Runnable() {
-                public void run() {
-                    evictLogicalAddressCache();
-                }
 
-                public String toString() {
-                    return TP.this.getClass().getSimpleName() + ": LogicalAddressCacheReaper (interval=" + logical_addr_cache_reaper_interval + " ms)";
-                }
-            }, logical_addr_cache_reaper_interval, logical_addr_cache_reaper_interval, TimeUnit.MILLISECONDS, false);
-        }
 
         if(message_processing_policy != null)
             setMessageProcessingPolicy(message_processing_policy);
@@ -941,6 +926,26 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
             }
         }
         fetchLocalAddresses();
+
+        if(timer == null) {
+            timer=new TimeScheduler3(thread_pool, thread_factory);
+            timer.setNonBlockingTaskHandling(timer_handle_non_blocking_tasks);
+        }
+        if(time_service_interval > 0)
+            time_service=new TimeService(timer, time_service_interval).start();
+        if(logical_addr_cache_reaper_interval > 0 && (logical_addr_cache_reaper == null || logical_addr_cache_reaper.isDone())) {
+                    logical_addr_cache_reaper=timer.scheduleWithFixedDelay(new Runnable() {
+                        public void run() {
+                            evictLogicalAddressCache();
+                        }
+
+                        public String toString() {
+                            return TP.this.getClass().getSimpleName() + ": LogicalAddressCacheReaper (interval=" + logical_addr_cache_reaper_interval + " ms)";
+                        }
+                    }, logical_addr_cache_reaper_interval, logical_addr_cache_reaper_interval, TimeUnit.MILLISECONDS, false);
+                }
+
+
         if(timer == null)
             throw new Exception("timer is null");
         startDiagnostics();

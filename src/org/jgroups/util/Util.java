@@ -3879,15 +3879,15 @@ public class Util {
         Enumeration intfs=NetworkInterface.getNetworkInterfaces();
         while(intfs.hasMoreElements()) {
             NetworkInterface intf=(NetworkInterface)intfs.nextElement();
-            try {
-                if(intf.isUp()) {
+            //try {
+                //if(intf.isUp()) {
                     address=getAddress(intf,scope);
                     if(address != null)
                         return address;
-                }
-            }
-            catch(SocketException ignored) {
-            }
+                //}
+            //}
+            //catch(SocketException ignored) {
+           // }
         }
         return null;
     }

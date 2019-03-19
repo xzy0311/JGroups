@@ -383,18 +383,26 @@ public class GMS extends Protocol implements DiagnosticsHandler.ProbeHandler {
         prev_members=new BoundedList<>(num_prev_mbrs);
         prev_views=new BoundedList<>(num_prev_views);
         TP transport=getTransport();
-        timer=transport.getTimer();
-        if(timer == null)
-            throw new Exception("timer is null");
+
         if(impl != null)
             impl.init();
         transport.registerProbeHandler(this);
     }
 
     public void start() throws Exception {
+
+        TP transport=getTransport();
+        System.out.printf("***** transport=%s\n", transport);
+        timer=transport.getTimer();
+       // if(timer == null)
+         //   throw new Exception("timer is null");
         leave_promise.reset();
         initState();
         if(impl != null) impl.start();
+    }
+
+    public TimeScheduler getTimer() {
+        return getTransport().getTimer();
     }
 
     public void stop() {

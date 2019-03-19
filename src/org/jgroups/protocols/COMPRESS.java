@@ -49,7 +49,8 @@ public class COMPRESS extends Protocol {
 
     
 
-    public COMPRESS() {      
+    public COMPRESS() {
+        System.out.println("hello");
     }
 
 

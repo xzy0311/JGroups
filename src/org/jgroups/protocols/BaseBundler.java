@@ -93,10 +93,16 @@ public abstract class BaseBundler implements Bundler {
                 transport.incrNumSingleMsgsSent(1);
         }
         catch(SocketException | SocketTimeoutException sock_ex) {
+
+            sock_ex.printStackTrace();
+
             log.trace(Util.getMessage("SendFailure"),
                       transport.localAddress(), (dest == null? "cluster" : dest), msg.size(), sock_ex.toString(), msg.printHeaders());
         }
         catch(Throwable e) {
+
+            e.printStackTrace();
+
             log.error(Util.getMessage("SendFailure"),
                       transport.localAddress(), (dest == null? "cluster" : dest), msg.size(), e.toString(), msg.printHeaders());
         }

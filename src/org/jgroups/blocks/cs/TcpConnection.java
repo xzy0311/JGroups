@@ -37,7 +37,7 @@ public class TcpConnection extends Connection {
             throw new IllegalArgumentException("Invalid parameter peer_addr="+ peer_addr);
         this.peer_addr=peer_addr;
         this.sock=server.socketFactory().createSocket("jgroups.tcp.sock");
-        setSocketParameters(sock);
+        // setSocketParameters(sock);
         last_access=getTimestamp(); // last time a message was sent or received (ns)
     }
 
@@ -46,7 +46,7 @@ public class TcpConnection extends Connection {
         this.server=server;
         if(s == null)
             throw new IllegalArgumentException("Invalid parameter s=" + s);
-        setSocketParameters(s);
+        // setSocketParameters(s);
         this.out=new DataOutputStream(createBufferedOutputStream(s.getOutputStream()));
         this.in=new DataInputStream(createBufferedInputStream(s.getInputStream()));
         this.connected=sock.isConnected();
