@@ -19,14 +19,24 @@ import java.net.InetAddress;
 public class ProgrammaticChat {
 
     public static void main(String[] args) throws Exception {
+        String name=null;
+
+        for(int i =0; i < args.length; i++) {
+            if("-name".equals(args[i])) {
+                name=args[++i];
+                continue;
+            }
+            System.out.println("ProgrammaticChat [-h] [-name >name>]");
+            return;
+        }
+
         Protocol[] prot_stack={
-          new UDP().setValue("bind_addr", InetAddress.getByName("127.0.0.1")),
+          new UDP().setBindAddress(InetAddress.getByName("127.0.0.1")),
           new PING(),
           new MERGE3(),
           new FD_SOCK(),
           new FD_ALL(),
           new VERIFY_SUSPECT(),
-          new BARRIER(),
           new NAKACK2(),
           new UNICAST3(),
           new STABLE(),
@@ -34,15 +44,16 @@ public class ProgrammaticChat {
           new UFC(),
           new MFC(),
           new FRAG2()};
-        JChannel ch=new JChannel(prot_stack).name(args[0]);
+        JChannel ch=new JChannel(prot_stack).name(name);
 
         ch.setReceiver(new ReceiverAdapter() {
             public void viewAccepted(View new_view) {
-                System.out.println("view: " + new_view);
+                System.out.printf("view: %s\n", new_view);
             }
 
             public void receive(Message msg) {
-                System.out.println("<< " + msg.getObject() + " [" + msg.getSrc() + "]");
+                String s=new String(msg.getRawBuffer(), msg.getOffset(), msg.getLength());
+                System.out.printf("%s (from %s)\n", s, msg.getSrc());
             }
         });
 
@@ -51,7 +62,7 @@ public class ProgrammaticChat {
 
         for(;;) {
             String line=Util.readStringFromStdin(": ");
-            ch.send(null, line);
+            ch.send(null, line.getBytes());
         }
     }
 
