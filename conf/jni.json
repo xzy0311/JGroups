@@ -1,0 +1,11 @@
+[
+  {
+    "name" : "java.net.NetworkInterface",
+    "allDeclaredMethods" : true,
+    "allPublicMethods" : true,
+    "methods" : [
+      { "name" : "isUp",  "parameterTypes" : [] },
+      { "name" : "isUp0", "parameterTypes" : ["java.lang.String", "int"] }
+    ]
+  }
+]
