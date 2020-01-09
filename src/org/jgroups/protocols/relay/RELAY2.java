@@ -603,7 +603,7 @@ public class RELAY2 extends Protocol {
                 }
                 return true;
             case Relay2Header.TOPO_REQ:
-                Message topo_rsp=new Message(sender)
+                Message topo_rsp=new EmptyMessage(sender)
                   .putHeader(id, new Relay2Header(Relay2Header.TOPO_RSP).setSites(_printTopology(relayer)));
                 down_prot.down(topo_rsp);
                 return true;
@@ -761,8 +761,8 @@ public class RELAY2 extends Protocol {
             return;
         Relay2Header hdr=new Relay2Header(down? Relay2Header.SITES_DOWN : Relay2Header.SITES_UP, null, null)
           .setSites(sites);
-        // down_prot.down(new EmptyMessage(null).putHeader(id, hdr).setFlag(Message.Flag.NO_RELAY));
-        down_prot.down((Message)new EmptyMessage(null).setFlag(Message.Flag.NO_RELAY));
+        down_prot.down((Message)new EmptyMessage(null).putHeader(id, hdr).setFlag(Message.Flag.NO_RELAY));
+        // down_prot.down((Message)new EmptyMessage(null).setFlag(Message.Flag.NO_RELAY));
     }
 
     /** Copies the message, but only the headers above the current protocol (RELAY) (or RpcDispatcher related headers) */
@@ -850,7 +850,7 @@ public class RELAY2 extends Protocol {
     }
 
     protected boolean sendTopoReq(JChannel bridge, Address dest) {
-        Message topo_req=new Message(dest).putHeader(id, new Relay2Header(Relay2Header.TOPO_REQ));
+        Message topo_req=new EmptyMessage(dest).putHeader(id, new Relay2Header(Relay2Header.TOPO_REQ));
         try {
             bridge.send(topo_req);
             return true;
@@ -863,7 +863,7 @@ public class RELAY2 extends Protocol {
 
     protected String fetchTopoFromSiteMaster(Address sm) {
         topo_collector.reset(sm);
-        Message topo_req=new Message(sm).putHeader(id, new Relay2Header(Relay2Header.TOPO_REQ));
+        Message topo_req=new EmptyMessage(sm).putHeader(id, new Relay2Header(Relay2Header.TOPO_REQ));
         down_prot.down(topo_req);
         topo_collector.waitForAllResponses(topo_wait_time);
         Map<Address,String> rsps=topo_collector.getResults();
