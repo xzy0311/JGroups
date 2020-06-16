@@ -42,7 +42,7 @@ public class MPerf implements Receiver {
     protected int                   log_interval=num_msgs / 10; // log every 10%
     protected int                   receive_log_interval=Math.max(1, num_msgs / 10);
     protected int                   num_senders=-1; // <= 0: all
-    protected boolean               oob=false;
+    protected boolean               oob;
 
     protected boolean cancelled=false;
 
