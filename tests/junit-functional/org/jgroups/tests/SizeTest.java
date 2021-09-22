@@ -20,10 +20,7 @@ import org.jgroups.util.*;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.*;
 import java.util.*;
 
 
@@ -708,7 +705,17 @@ public class SizeTest {
         assert list.equals(new_list);
     }
 
-
+    public void testMessageList() throws IOException {
+        Address a=Util.createRandomAddress("A"), b=Util.createRandomAddress("B");
+        AsciiString cluster=new AsciiString("mperf");
+        List<Message> msgs=new ArrayList<>();
+        msgs.add(new BytesMessage(a, "hello".getBytes()).src(b));
+        msgs.add(new BytesMessage(a, " world").src(b));
+        int expected_size=Util.sizeMessageList(a, b, cluster.chars(), msgs, (short)22);
+        ByteArrayDataOutputStream out= new ByteArrayDataOutputStream();
+        Util.writeMessageList(a, b, cluster.chars(), msgs, out, a == null, (short)22);
+        assert out.position() == expected_size;
+    }
 
     public void testUUID() throws Exception {
         org.jgroups.util.UUID uuid=org.jgroups.util.UUID.randomUUID();

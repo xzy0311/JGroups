@@ -191,7 +191,7 @@ public class NioMessage extends BaseMessage {
         return copy;
     }
 
-    protected int sizeOfPayload() {
+    public int sizeOfPayload() {
         return Global.INT_SIZE + getLength() + Global.BYTE_SIZE; // for use_direct_memory_for_allocations
     }
 

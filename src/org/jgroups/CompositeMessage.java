@@ -121,6 +121,15 @@ public class CompositeMessage extends BaseMessage implements Iterable<Message> {
         return retval;
     }
 
+    public int sizeOfPayload() {
+        int retval=0;
+        if(msgs != null) {
+            for(int i=0; i < index; i++)
+                retval+=msgs[i].sizeOfPayload();
+        }
+        return retval;
+    }
+
     public Iterator<Message> iterator() {
         return new CompositeMessageIterator();
     }

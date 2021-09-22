@@ -35,7 +35,7 @@ public class FragmentedMessage extends BytesMessage { // we need the superclass'
     public boolean           hasArray()           {return false;}
     public boolean           hasPayload()         {return true;}
     public Supplier<Message> create()             {return FragmentedMessage::new;}
-    protected int            sizeOfPayload()      {return Global.INT_SIZE + length;}
+    public int               sizeOfPayload()      {return Global.INT_SIZE + length;}
 
     public void writePayload(DataOutput out) throws IOException {
         ByteArrayDataOutputStream bos=out instanceof ByteArrayDataOutputStream? (ByteArrayDataOutputStream)out : null;

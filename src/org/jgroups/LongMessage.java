@@ -47,6 +47,7 @@ public class LongMessage extends BaseMessage {
         return LongMessage::new;
     }
 
+    @Override public int sizeOfPayload() {return Bits.size(value);}
 
     public void writePayload(DataOutput out) throws IOException {
         Bits.writeLongCompressed(value, out);
@@ -57,7 +58,7 @@ public class LongMessage extends BaseMessage {
     }
 
     public int size() {
-        return super.size() + Bits.size(value);
+        return super.size() + sizeOfPayload();
     }
 
     public String toString() {

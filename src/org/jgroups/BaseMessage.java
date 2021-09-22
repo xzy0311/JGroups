@@ -287,6 +287,35 @@ public abstract class BaseMessage implements Message {
     }
 
 
+    public int sizeNoAddrs(Address src, short... excluded_headers) {
+        int retval=0;
+        byte leading=0;
+
+        boolean write_src_addr=src == null || sender != null && !sender.equals(src);
+
+        if(write_src_addr)
+            leading=Util.setFlag(leading, SRC_SET);
+
+        // leading byte
+        retval+=Byte.BYTES;
+
+        // flags (e.g. OOB, LOW_PRIO)
+        retval+=Short.BYTES;
+
+        // src_addr
+        if(write_src_addr)
+            retval+=Util.size(sender);
+
+        //  headers
+        retval+=sizeOfHeaders(this.headers, excluded_headers);
+
+        // payload
+        retval+=sizeOfPayload();
+        return retval;
+    }
+
+
+
     public void readFrom(DataInput in) throws IOException, ClassNotFoundException {
         // 1. read the leading byte first
         byte leading=in.readByte();
@@ -334,6 +363,25 @@ public abstract class BaseMessage implements Message {
                 writeHeader(hdr, out);
             }
         }
+    }
+
+    protected static int sizeOfHeaders(Header[] hdrs, short ... excluded_headers) {
+        int size=Headers.size(hdrs, excluded_headers);
+        int retval=Short.BYTES; // number of headers
+        if(size > 0) {
+            for(Header hdr : hdrs) {
+                if(hdr == null)
+                    break;
+                short id=hdr.getProtId();
+                if(Util.containsId(id, excluded_headers))
+                    continue;
+                retval+=Short.BYTES; // ID
+                // header
+                retval+=Short.BYTES;  // magic ID
+                retval+=hdr.serializedSize();
+            }
+        }
+        return retval;
     }
 
     protected static void writeHeader(Header hdr, DataOutput out) throws IOException {

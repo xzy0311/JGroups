@@ -83,6 +83,8 @@ public class MessageFactoryTest {
             return null;
         }
 
+        public int sizeOfPayload() {return 0;}
+
         public void writePayload(DataOutput out) throws IOException {
         }
 

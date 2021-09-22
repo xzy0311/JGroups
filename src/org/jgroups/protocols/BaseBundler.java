@@ -84,10 +84,18 @@ public abstract class BaseBundler implements Bundler {
     protected void sendSingleMessage(final Message msg) {
         Address dest=msg.getDest();
         try {
-            Util.writeMessage(msg, output, dest == null);
-            transport.doSend(output.buffer(), 0, output.position(), dest);
+            if(transport.lateMarshalling()) {
+                transport.doSend(msg);
+            }
+            else {
+                Util.writeMessage(msg, output, dest == null);
+                transport.doSend(output.buffer(), 0, output.position(), dest);
+            }
             if(transport.statsEnabled())
                 transport.incrNumSingleMsgsSent(1);
+        }
+        catch(UnsupportedOperationException un) {
+            log.warn("%s: failed sending single message: %s", transport.getLocalAddress(), un.getMessage());
         }
         catch(Throwable e) {
             log.trace(Util.getMessage("SendFailure"),
@@ -99,8 +107,16 @@ public abstract class BaseBundler implements Bundler {
 
     protected void sendMessageList(final Address dest, final Address src, final List<Message> list) {
         try {
-            Util.writeMessageList(dest, src, transport.cluster_name.chars(), list, output, dest == null, transport.getId());
-            transport.doSend(output.buffer(), 0, output.position(), dest);
+            if(transport.lateMarshalling()) {
+                transport.doSend(dest, src, list);
+            }
+            else {
+                Util.writeMessageList(dest, src, transport.cluster_name.chars(), list, output, dest == null, transport.getId());
+                transport.doSend(output.buffer(), 0, output.position(), dest);
+            }
+        }
+        catch(UnsupportedOperationException un) {
+            log.warn("%s: failed sending message list: %s", transport.getLocalAddress(), un.getMessage());
         }
         catch(Throwable e) {
             log.trace(Util.getMessage("FailureSendingMsgBundle"), transport.localAddress(), e);

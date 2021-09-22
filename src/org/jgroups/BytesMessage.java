@@ -245,7 +245,7 @@ public class BytesMessage extends BaseMessage {
         return copy;
     }
 
-    protected int sizeOfPayload() {
+    @Override public int sizeOfPayload() {
         int retval=Global.INT_SIZE; // length
         if(array != null)
             retval+=length;         // number of bytes in the array

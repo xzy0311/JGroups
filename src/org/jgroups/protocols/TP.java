@@ -88,6 +88,10 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
     @Property(description="If true, the transport should use all available interfaces to receive multicast messages")
     protected boolean receive_on_all_interfaces;
 
+
+    @Property(description="If set, marshalling is delayed until late down in the transport")
+    protected boolean late_marshalling;
+
     /**
      * List<NetworkInterface> of interfaces to receive multicasts on. The multicast receive socket will listen
      * on all of these interfaces. This is a comma-separated list of IP addresses or interface names. E.g.
@@ -275,6 +279,8 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
     public <T extends TP> T setMessageFactory(MessageFactory m) {msg_factory=m; return (T)this;}
     public boolean          useFibers()                         {return use_fibers;}
     public <T extends TP> T useFibers(boolean b)                {use_fibers=b; return (T)this;}
+    public boolean          lateMarshalling()                   {return late_marshalling;}
+    public <T extends TP> T lateMarshalling(boolean lm)         {this.late_marshalling=lm; return (T)this;}
 
     public InetAddress getBindAddr() {return bind_addr;}
     public <T extends TP> T setBindAddr(InetAddress b) {this.bind_addr=b; return (T)this;}
@@ -1659,6 +1665,50 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
     }
 
 
+
+    public void doSend(Message msg) throws Exception {
+        if(stats) {
+            msg_stats.incrNumMsgsSent(1);
+            msg_stats.incrNumBytesSent(msg.getLength());
+        }
+        if(msg.dest() != null)
+            sendTo(msg.dest(), msg);
+        else
+            sendToAll(msg);
+    }
+
+
+    public void doSend(Address dest, Address src, List<Message> msgs) throws Exception {
+        if(stats && msgs != null) {
+            int num_msgs=0, total_length=0;
+            for(Message m: msgs) {
+                num_msgs++;
+                total_length+=m.getLength();
+            }
+            msg_stats.incrNumMsgsSent(num_msgs);
+            msg_stats.incrNumBytesSent(total_length);
+        }
+        if(dest != null)
+            sendTo(dest, src, msgs);
+        else
+            sendToAll(src, msgs);
+    }
+
+    public void sendTo(Address dest, Message msg) throws Exception {
+        throw new UnsupportedOperationException("needs to be overridden by subclasses");
+    }
+
+    public void sendToAll(Message msg) throws Exception {
+        throw new UnsupportedOperationException("needs to be overridden by subclasses");
+    }
+
+    public void sendTo(Address dest, Address src, List<Message> msgs) throws Exception {
+        throw new UnsupportedOperationException("needs to be overridden by subclasses");
+    }
+
+    public void sendToAll(Address src, List<Message> msgs) throws Exception {
+        throw new UnsupportedOperationException("needs to be overridden by subclasses");
+    }
 
     public void doSend(byte[] buf, int offset, int length, Address dest) throws Exception {
         if(stats) {

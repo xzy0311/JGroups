@@ -33,6 +33,7 @@ public class EmptyMessage extends BaseMessage {
     public <T extends Object> T  getObject()                          {throw new UnsupportedOperationException();}
     public EmptyMessage          setObject(Object obj)                {throw new UnsupportedOperationException();}
 
+    public int                   sizeOfPayload()                      {return 0;}
     public void                  writePayload(DataOutput out) throws IOException {
         // no payload to write
     }

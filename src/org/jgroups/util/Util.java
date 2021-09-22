@@ -1449,6 +1449,13 @@ public class Util {
         msg.writeTo(dos);
     }
 
+    public static int size(Message msg) {
+        // version + flags (e.g. MULTICAST,LIST)  + message type
+        int size=Short.BYTES + Byte.BYTES + Short.BYTES;
+        if(msg != null) size+=msg.serializedSize();
+        return size;
+    }
+
     public static Message readMessage(DataInput in, MessageFactory mf) throws IOException, ClassNotFoundException {
         short type=in.readShort();
         Message msg=mf.create(type);
@@ -1461,21 +1468,21 @@ public class Util {
      * Write a list of messages with the *same* destination and src addresses. The message list is
      * marshalled as follows (see doc/design/MarshallingFormat.txt for details):
      * <pre>
-     * List: * | version | flags | dest | src | cluster-name | [Message*] |
+     * List: * | version | flags | dst | src | cluster | [Message*] |
      *
      * Message:  | presence | leading | flags | [src] | length | [buffer] | size | [Headers*] |
      *
      * </pre>
-     * @param dest
+     * @param dst
      * @param src
      * @param msgs
      * @param dos
      * @param multicast
      * @throws Exception
      */
-    public static void writeMessageList(Address dest, Address src, byte[] cluster_name,
-                                        List<Message> msgs, DataOutput dos, boolean multicast, short transport_id) throws IOException {
-        writeMessageListHeader(dest, src, cluster_name, msgs != null ? msgs.size() : 0, dos, multicast);
+    public static void writeMessageList(Address dst, Address src, byte[] cluster, List<Message> msgs,
+                                        DataOutput dos, boolean multicast, short transport_id) throws IOException {
+        writeMessageListHeader(dst, src, cluster, msgs != null ? msgs.size() : 0, dos, multicast);
 
         if(msgs != null)
             for(Message msg: msgs) {
@@ -1484,7 +1491,22 @@ public class Util {
             }
     }
 
-    public static void writeMessageListHeader(Address dest, Address src, byte[] cluster_name, int numMsgs, DataOutput dos, boolean multicast) throws IOException {
+    public static int sizeMessageList(Address dst, Address src, byte[] cluster, List<Message> msgs, short transport_id) {
+        int size=Short.BYTES + Byte.BYTES; // version and flags
+        size+=size(dst) + size(src);
+        size+=Short.BYTES + (cluster != null? cluster.length : 0); // length of cluster name + cluster name
+        size+=Integer.BYTES; // number of messages
+
+        if(msgs != null)
+            for(Message msg: msgs) {
+                size+=Short.BYTES; // message types
+                size+=msg.sizeNoAddrs(src, transport_id);
+            }
+        return size;
+    }
+
+    public static void writeMessageListHeader(Address dst, Address src, byte[] cluster, int num, DataOutput dos,
+                                              boolean multicast) throws IOException {
         dos.writeShort(Version.version);
 
         byte flags=LIST;
@@ -1493,15 +1515,15 @@ public class Util {
 
         dos.writeByte(flags);
 
-        Util.writeAddress(dest, dos);
+        Util.writeAddress(dst, dos);
 
         Util.writeAddress(src, dos);
 
-        dos.writeShort(cluster_name != null? cluster_name.length : -1);
-        if(cluster_name != null)
-            dos.write(cluster_name);
+        dos.writeShort(cluster != null? cluster.length : -1);
+        if(cluster != null)
+            dos.write(cluster);
 
-        dos.writeInt(numMsgs);
+        dos.writeInt(num);
     }
 
 

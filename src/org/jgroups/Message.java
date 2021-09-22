@@ -191,6 +191,10 @@ public interface Message extends SizeStreamable, Constructable<Message> {
     /** Writes the message to an output stream excluding the destination (and possibly source) address, plus a number of headers */
     void                 writeToNoAddrs(Address src, DataOutput out, short... excluded_headers) throws IOException;
 
+    int                  sizeNoAddrs(Address src, short ... excluded_headers);
+
+    int                  sizeOfPayload();
+
     void                 writePayload(DataOutput out) throws IOException;
 
     void                 readPayload(DataInput in) throws IOException, ClassNotFoundException;
