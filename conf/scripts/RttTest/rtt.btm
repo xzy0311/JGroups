@@ -1,0 +1,11 @@
+
+
+
+
+RULE AttachHeader
+CLASS org.jgroups.blocks.UnicastRequest
+METHOD sendRequest
+AT ENTRY
+IF TRUE
+   DO System.out.println("--> sending unicast request");
+ENDRULE
