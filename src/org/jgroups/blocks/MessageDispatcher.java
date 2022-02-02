@@ -297,11 +297,6 @@ public class MessageDispatcher implements RequestHandler, Closeable, ChannelList
 
 
 
-    public void done(long req_id) {
-        corr.done(req_id);
-    }
-
-
     /**
      * Sends a unicast message and - depending on the options - returns a result
      * @param msg the payload to send
