@@ -2,10 +2,48 @@
 
 
 
-RULE AttachHeader
-CLASS org.jgroups.blocks.UnicastRequest
+RULE SendRequest
+CLASS ^org.jgroups.blocks.Request
+HELPER org.jgroups.tests.helpers.RttTestHelper
 METHOD sendRequest
 AT ENTRY
+BIND msg=$1
 IF TRUE
-   DO System.out.println("--> sending unicast request");
+   DO attachHeader(msg);
+      setSendRequestTime(msg);
+ENDRULE
+
+
+
+RULE SerializeRequest (single message)
+CLASS org.jgroups.protocols.BaseBundler
+HELPER org.jgroups.tests.helpers.RttTestHelper
+METHOD sendSingleMessage
+AT ENTRY
+BIND msg=$1;
+IF TRUE
+   DO setSerializeRequestTime(msg);
+ENDRULE
+
+
+
+RULE SerializeRequest (message list)
+CLASS org.jgroups.protocols.BaseBundler
+HELPER org.jgroups.tests.helpers.RttTestHelper
+METHOD sendMessageList
+AT ENTRY
+BIND list=$3;
+IF TRUE
+   DO setSerializeRequestTime(list.iterator());
+ENDRULE
+
+
+RULE MakeReply ## copy the RttHeader from the request to the response
+CLASS org.jgroups.blocks.RequestCorrelator
+HELPER org.jgroups.tests.helpers.RttTestHelper
+METHOD makeReply
+AT EXIT
+BIND req=$1,rsp=$!;
+IF TRUE
+   DO copyHeader(req, rsp);
 ENDRULE

@@ -1,5 +1,6 @@
 package org.jgroups.protocols;
 
+import org.jgroups.Global;
 import org.jgroups.Header;
 import org.jgroups.util.Util;
 
@@ -52,19 +53,35 @@ public class RTTHeader extends Header {
     }
 
     public String toString() {
-        return String.format("down req=%s network req=%s\n", print(downRequest()), print(networkRequest()));
+        return String.format("down req=%s network req=%s", print(downRequest()), print(networkRequest()));
     }
 
     public int serializedSize() {
-        return 0;
+        return 9 * Global.LONG_SIZE;
     }
 
     public void writeTo(DataOutput out) throws IOException {
-
+        out.writeLong(send_req);
+        out.writeLong(serialize_req);
+        out.writeLong(deserialize_req);
+        out.writeLong(receive_req);
+        out.writeLong(send_rsp);
+        out.writeLong(serialize_rsp);
+        out.writeLong(deserialize_rsp);
+        out.writeLong(receive_rsp);
+        out.writeLong(rsp_dispatched);
     }
 
     public void readFrom(DataInput in) throws IOException, ClassNotFoundException {
-
+        send_req=in.readLong();
+        serialize_req=in.readLong();
+        deserialize_req=in.readLong();
+        receive_req=in.readLong();
+        send_rsp=in.readLong();
+        serialize_rsp=in.readLong();
+        deserialize_rsp=in.readLong();
+        receive_rsp=in.readLong();
+        rsp_dispatched=in.readLong();
     }
 
     protected static String print(long r) {

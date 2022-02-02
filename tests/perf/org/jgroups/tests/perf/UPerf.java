@@ -51,7 +51,6 @@ public class UPerf implements Receiver {
     @Property protected int     msg_size=1000;
     @Property protected int     anycast_count=2;
     @Property protected double  read_percentage=0.8; // 80% reads, 20% writes
-    @Property protected boolean allow_local_gets=true;
     @Property protected boolean print_invokers;
     @Property protected boolean print_details;
     @Property protected long    rpc_timeout=0;
@@ -67,7 +66,7 @@ public class UPerf implements Receiver {
     private static final short QUIT_ALL              =  5;
 
     protected static final Field SYNC, OOB, NUM_THREADS, TIME, RPC_TIMEOUT, MSG_SIZE, ANYCAST_COUNT,
-      READ_PERCENTAGE, ALLOW_LOCAL_GETS, PRINT_INVOKERS, PRINT_DETAILS;
+      READ_PERCENTAGE, PRINT_INVOKERS, PRINT_DETAILS;
 
 
     private byte[]              BUFFER=new byte[msg_size];
@@ -75,7 +74,7 @@ public class UPerf implements Receiver {
       "[1] Start test [2] View [4] Threads (%d) [6] Time (%,ds) [7] Msg size (%s)" +
         "\n[s] Sync (%b) [o] OOB (%b) [t] RPC timeout (%,dms)" +
         "\n[a] Anycast count (%d) [r] Read percentage (%.2f) " +
-        "\n[l] local gets (%b) [d] print details (%b)  [i] print invokers (%b)" +
+        "\n[d] print details (%b)  [i] print invokers (%b)" +
         "\n[v] Version [x] Exit [X] Exit all\n";
 
 
@@ -96,7 +95,6 @@ public class UPerf implements Receiver {
             MSG_SIZE=Util.getField(UPerf.class, "msg_size", true);
             ANYCAST_COUNT=Util.getField(UPerf.class, "anycast_count", true);
             READ_PERCENTAGE=Util.getField(UPerf.class, "read_percentage", true);
-            ALLOW_LOCAL_GETS=Util.getField(UPerf.class, "allow_local_gets", true);
             PRINT_INVOKERS=Util.getField(UPerf.class, "print_invokers", true);
             PRINT_DETAILS=Util.getField(UPerf.class, "print_details", true);
             PerfUtil.init();
@@ -275,7 +273,7 @@ public class UPerf implements Receiver {
             try {
                 int c=Util.keyPress(String.format(format, num_threads, time, Util.printBytes(msg_size),
                                                   sync, oob, rpc_timeout, anycast_count, read_percentage,
-                                                  allow_local_gets, print_details, print_invokers));
+                                                  print_details, print_invokers));
                 switch(c) {
                     case '1':
                         startBenchmark();
@@ -313,9 +311,6 @@ public class UPerf implements Receiver {
                         break;
                     case 'i':
                         changeFieldAcrossCluster(PRINT_INVOKERS, !print_invokers);
-                        break;
-                    case 'l':
-                        changeFieldAcrossCluster(ALLOW_LOCAL_GETS, !allow_local_gets);
                         break;
                     case 't':
                         changeFieldAcrossCluster(RPC_TIMEOUT, Util.readIntFromStdin("RPC timeout (millisecs): "));
@@ -504,11 +499,7 @@ public class UPerf implements Receiver {
                     if(get) { // sync GET
                         Address target=pickTarget();
                         long start=System.nanoTime();
-                        if(allow_local_gets && Objects.equals(target, local_addr))
-                            get(1);
-                        else {
-                            disp.callRemoteMethod(target, get_call, get_options);
-                        }
+                        disp.callRemoteMethod(target, get_call, get_options);
                         long get_time=System.nanoTime()-start;
                         avg_gets.add(get_time);
                         num_reads.increment();
