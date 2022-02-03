@@ -4,6 +4,7 @@ import org.jboss.byteman.rule.Rule;
 import org.jboss.byteman.rule.helper.Helper;
 import org.jgroups.Message;
 import org.jgroups.protocols.RTTHeader;
+import org.jgroups.util.RpcStats;
 
 import java.util.Iterator;
 
@@ -16,7 +17,7 @@ public class RttTestHelper extends Helper {
         super(rule);
     }
 
-    public static void activated() {
+  /*  public static void activated() {
         System.out.println("helper activated");
     }
     public static void installed(Rule rule) {
@@ -35,7 +36,7 @@ public class RttTestHelper extends Helper {
     }
     public static void deactivated() {
         System.out.println("helper deactivated");
-    }
+    }*/
 
 
     @SuppressWarnings("MethodMayBeStatic")
@@ -67,6 +68,17 @@ public class RttTestHelper extends Helper {
                 if(hdr != null)
                     hdr.serializeReq(time);
             }
+        }
+    }
+
+    @SuppressWarnings("MethodMayBeStatic")
+    public void setRspDispatchedTime(Message msg, RpcStats rpc_stats) {
+        if(rpc_stats == null)
+            return;
+        RTTHeader hdr=getHeader(msg);
+        if(hdr != null) {
+            hdr.rspDispatched(System.nanoTime());
+            rpc_stats.addRTTStats(msg.src(), hdr);
         }
     }
 
