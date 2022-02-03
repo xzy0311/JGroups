@@ -103,7 +103,7 @@ public class RequestCorrelator {
      * @param req A request (usually the object that invokes this method). Its methods {@code receiveResponse()} and
      *            {@code suspect()} will be invoked when a message has been received or a member is suspected.
      */
-    public <T> void sendRequest(Collection<Address> dest_mbrs, Message msg, Request<T> req, RequestOptions opts) throws Exception {
+    public <T> void sendMulticastRequest(Collection<Address> dest_mbrs, Message msg, Request<T> req, RequestOptions opts) throws Exception {
         // i.   Create the request correlator header and add it to the msg
         // ii.  If a reply is expected (coll != null), add a coresponding entry in the pending requests table
         Header hdr=opts.hasExclusionList()? new MultiDestinationHeader(Header.REQ, 0, this.corr_id, opts.exclusionList())
@@ -159,11 +159,13 @@ public class RequestCorrelator {
             hdr.requestId(req_id); // set the request-id only for *synchronous RPCs*
             if(log.isTraceEnabled())
                 log.trace("%s: invoking unicast RPC [req-id=%d] on %s", local_addr, req_id, dest);
-            requests.putIfAbsent(req_id, req);
-            // make sure no view is received before we add ourself as a view handler (https://issues.jboss.org/browse/JGRP-1428)
-            req.viewChange(view, false);
-            if(rpc_stats.extendedStats())
-                req.start_time=System.nanoTime();
+            Request<?> existing=requests.putIfAbsent(req_id, req);
+            if(existing == null) { // only invoke the code below if the request has not yet been added
+                // make sure no view is received before we add ourself as a view handler (https://issues.jboss.org/browse/JGRP-1428)
+                req.viewChange(view, false);
+                if(rpc_stats.extendedStats())
+                    req.start_time=System.nanoTime();
+            }
         }
         else // async RPC
             rpc_stats.add(RpcStats.Type.UNICAST, dest, false, 0);
@@ -246,6 +248,7 @@ public class RequestCorrelator {
     public void receiveView(View new_view) {
         view=new_view; // move this before the iteration (JGRP-1428)
         requests.values().stream().filter(Objects::nonNull).forEach(req -> req.viewChange(new_view, true));
+        rpc_stats.retainAll(new_view.getMembers());
     }
 
 
@@ -327,11 +330,7 @@ public class RequestCorrelator {
 
             case Header.RSP:
             case Header.EXC_RSP:
-                Request<?> req=requests.get(hdr.req_id);
-                if(req != null) {
-                    Object retval=msg.getPayload();
-                    req.receiveResponse(retval, msg.getSrc(), hdr.type == Header.EXC_RSP);
-                }
+                handleResponse(msg, hdr);
                 break;
 
             default:
@@ -371,6 +370,14 @@ public class RequestCorrelator {
         }
         if(hdr.rspExpected())
             sendReply(req, hdr.req_id, retval, threw_exception);
+    }
+
+    protected void handleResponse(Message rsp, Header hdr) {
+        Request<?> req=requests.get(hdr.req_id);
+        if(req != null) {
+            Object retval=rsp.getPayload();
+            req.receiveResponse(retval, rsp.getSrc(), hdr.type == Header.EXC_RSP);
+        }
     }
 
 
@@ -572,6 +579,7 @@ public class RequestCorrelator {
                         retval.put("async anycast   RPCs", String.valueOf(rpc_stats.anycasts(false)));
                         break;
                     case "rpcs-reset":
+                    case "rtt-reset":
                         rpc_stats.reset();
                         break;
                     case "rpcs-enable-details":
@@ -584,7 +592,10 @@ public class RequestCorrelator {
                         if(!rpc_stats.extendedStats())
                             retval.put(key, "<details not enabled: use rpcs-enable-details to enable>");
                         else
-                            retval.put(key, rpc_stats.printOrderByDest());
+                            retval.put(key, rpc_stats.printStatsByDest());
+                        break;
+                    case "rtt":
+                        retval.put(key + " (min/avg/max)", rpc_stats.printRTTStatsByDest());
                         break;
                 }
             }
@@ -592,7 +603,8 @@ public class RequestCorrelator {
         }
 
         public String[] supportedKeys() {
-            return new String[]{"requests", "reqtable-info", "rpcs", "rpcs-reset", "rpcs-enable-details", "rpcs-disable-details", "rpcs-details"};
+            return new String[]{"requests", "reqtable-info", "rpcs", "rpcs-reset", "rpcs-enable-details",
+              "rpcs-disable-details", "rpcs-details", "rtt", "rtt-reset"};
         }
     }
 
