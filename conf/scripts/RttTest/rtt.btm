@@ -47,3 +47,15 @@ BIND req=$1,rsp=$!;
 IF TRUE
    DO copyHeader(req, rsp);
 ENDRULE
+
+
+## Removes the header of the response message and add it to the RTT stats hashmap
+RULE HandleResponse
+CLASS org.jgroups.blocks.RequestCorrelator
+HELPER org.jgroups.tests.helpers.RttTestHelper
+METHOD handleResponse
+AT EXIT
+BIND msg=$1;
+IF $req != null
+   DO setRspDispatchedTime(msg, $this.rpc_stats);
+ENDRULE
