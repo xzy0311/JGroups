@@ -41,6 +41,13 @@ public class RTTHeader extends Header {
     public RTTHeader serializeReq(long nanos)    {serialize_req=nanos; return this;}
     public RTTHeader deserializeReq(long nanos)  {deserialize_req=nanos; return this;}
 
+
+    public RTTHeader rspDispatched(long nanos)   {rsp_dispatched=nanos; return this;}
+
+    public long totalTime() {
+        return send_req > 0 && rsp_dispatched > 0? rsp_dispatched-send_req : 0;
+    }
+
     /** Time to send a request down, from sending until just before serialization */
     public long downRequest() {
         return send_req > 0 && serialize_req > 0? serialize_req-send_req : 0;
@@ -53,7 +60,8 @@ public class RTTHeader extends Header {
     }
 
     public String toString() {
-        return String.format("down req=%s network req=%s", print(downRequest()), print(networkRequest()));
+        return String.format("total=%s down req=%s network req=%s",
+                             print(totalTime()), print(downRequest()), print(networkRequest()));
     }
 
     public int serializedSize() {
