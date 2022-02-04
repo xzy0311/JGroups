@@ -17,27 +17,6 @@ public class RttTestHelper extends Helper {
         super(rule);
     }
 
-  /*  public static void activated() {
-        System.out.println("helper activated");
-    }
-    public static void installed(Rule rule) {
-        System.out.printf("helper installs rule %s\n", rule);
-    }
-
-    public static void installed(String ruleName) {
-        System.out.printf("helper installs rule %s\n", ruleName);
-    }
-    public static void uninstalled(Rule rule) {
-        System.out.printf("helper uninstalled rule %s\n", rule);
-    }
-    public static void uninstalled(String ruleName) {
-        System.out.printf("helper uninstalled rule %s\n", ruleName);
-
-    }
-    public static void deactivated() {
-        System.out.println("helper deactivated");
-    }*/
-
 
     @SuppressWarnings("MethodMayBeStatic")
     public void attachHeader(Message msg) {

@@ -26,7 +26,6 @@ IF TRUE
 ENDRULE
 
 
-
 RULE SerializeRequest (message list)
 CLASS org.jgroups.protocols.BaseBundler
 HELPER org.jgroups.tests.helpers.RttTestHelper
@@ -36,6 +35,29 @@ BIND list=$3;
 IF TRUE
    DO setSerializeRequestTime(list.iterator());
 ENDRULE
+
+
+RULE SerializeRequest (loopback)
+CLASS org.jgroups.protocols.TP
+HELPER org.jgroups.tests.helpers.RttTestHelper
+METHOD loopback
+AT ENTRY
+BIND msg=$1;
+IF TRUE
+   DO setSerializeRequestTime(msg);
+ENDRULE
+
+
+RULE SerializeRequest (NoBundler)
+CLASS org.jgroups.protocols.NoBundler
+HELPER org.jgroups.tests.helpers.RttTestHelper
+METHOD send
+AT ENTRY
+BIND msg=$1;
+IF TRUE
+   DO setSerializeRequestTime(msg);
+ENDRULE
+
 
 
 RULE MakeReply ## copy the RttHeader from the request to the response

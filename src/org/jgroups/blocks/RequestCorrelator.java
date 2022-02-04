@@ -112,35 +112,16 @@ public class RequestCorrelator {
         msg.putHeader(this.corr_id, hdr)
           .setFlag(opts.flags(), false).setFlag(opts.transientFlags(), true);
 
-        if(req != null) { // sync
-            long req_id=REQUEST_ID.getAndIncrement();
-            req.requestId(req_id);
-            hdr.requestId(req_id); // set the request-id only for *synchronous RPCs*
-            if(log.isTraceEnabled())
-                log.trace("%s: invoking multicast RPC [req-id=%d]", local_addr, req_id);
-            requests.putIfAbsent(req_id, req);
-            // make sure no view is received before we add ourself as a view handler (https://issues.jboss.org/browse/JGRP-1428)
-            req.viewChange(view, false);
-            if(rpc_stats.extendedStats())
-                req.start_time=System.nanoTime();
-        }
+        if(req != null) // sync
+            addEntry(req, hdr, false);
         else {  // async
-            if(opts != null && opts.anycasting())
+            if(opts.anycasting())
                 rpc_stats.addAnycast(false, 0, dest_mbrs);
             else
                 rpc_stats.add(RpcStats.Type.MULTICAST, null, false, 0);
         }
-
-        if(opts.anycasting()) {
-            boolean first=true;
-            for(Address mbr: dest_mbrs) {
-                Message copy=(first? msg : msg.copy(true, true)).setDest(mbr);
-                first=false;
-                if(!mbr.equals(local_addr) && copy.isFlagSet(Message.TransientFlag.DONT_LOOPBACK))
-                    copy.clearFlag(Message.TransientFlag.DONT_LOOPBACK);
-                down_prot.down(copy);
-            }
-        }
+        if(opts.anycasting())
+            sendAnycastRequest(msg, dest_mbrs);
         else
             down_prot.down(msg);
     }
@@ -153,30 +134,15 @@ public class RequestCorrelator {
         msg.putHeader(this.corr_id, hdr).setFlag(opts.flags(), false)
           .setFlag(opts.transientFlags(), true);
 
-        if(req != null) { // sync RPC
-            long req_id=REQUEST_ID.getAndIncrement();
-            req.requestId(req_id);
-            hdr.requestId(req_id); // set the request-id only for *synchronous RPCs*
-            if(log.isTraceEnabled())
-                log.trace("%s: invoking unicast RPC [req-id=%d] on %s", local_addr, req_id, dest);
-            Request<?> existing=requests.putIfAbsent(req_id, req);
-            if(existing == null) { // only invoke the code below if the request has not yet been added
-                // make sure no view is received before we add ourself as a view handler (https://issues.jboss.org/browse/JGRP-1428)
-                req.viewChange(view, false);
-                if(rpc_stats.extendedStats())
-                    req.start_time=System.nanoTime();
-            }
-        }
+        if(req != null) // sync RPC
+            addEntry(req, hdr, true);
         else // async RPC
             rpc_stats.add(RpcStats.Type.UNICAST, dest, false, 0);
         down_prot.down(msg);
     }
 
 
-
-    /**
-     * Used to signal that a certain request may be garbage collected as all responses have been received.
-     */
+    /** Used to signal that a certain request may be garbage collected as all responses have been received */
     public void done(long id) {
         removeEntry(id);
     }
@@ -299,11 +265,34 @@ public class RequestCorrelator {
         }
     }
 
+    protected void sendAnycastRequest(Message req, Collection<Address> dest_mbrs) {
+        boolean first=true;
+        for(Address mbr: dest_mbrs) {
+            Message copy=(first? req : req.copy(true, true)).setDest(mbr);
+            first=false;
+            if(!mbr.equals(local_addr) && copy.isFlagSet(Message.TransientFlag.DONT_LOOPBACK))
+                copy.clearFlag(Message.TransientFlag.DONT_LOOPBACK);
+            down_prot.down(copy);
+        }
+    }
 
+    protected <T> void addEntry(Request<T> req, Header hdr, boolean unicast) {
+        long req_id=REQUEST_ID.getAndIncrement();
+        req.requestId(req_id);
+        hdr.requestId(req_id); // set the request-id only for *synchronous RPCs*
+        if(log.isTraceEnabled())
+            log.trace("%s: invoking %s RPC [req-id=%d]", local_addr, unicast? "unicast" : "multicast", req_id);
+        Request<?> existing=requests.putIfAbsent(req_id, req);
+        if(existing == null) {
+            // make sure no view is received before we add ourself as a view handler (https://issues.jboss.org/browse/JGRP-1428)
+            req.viewChange(view, false);
+            if(rpc_stats.extendedStats())
+                req.start_time=System.nanoTime();
+        }
+    }
 
-    // .......................................................................
-    protected RequestCorrelator removeEntry(long id) {
-        Request<?> req=requests.remove(id);
+    protected RequestCorrelator removeEntry(long req_id) {
+        Request<?> req=requests.remove(req_id);
         if(req != null) {
             long time_ns=req.start_time > 0? System.nanoTime() - req.start_time : 0;
             if(req instanceof UnicastRequest)
@@ -319,7 +308,6 @@ public class RequestCorrelator {
         }
         return this;
     }
-
 
 
     protected void dispatch(final Message msg, final Header hdr) {
